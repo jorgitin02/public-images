@@ -3,62 +3,136 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>COA Library</title>
+<title>Certificate of Analysis Index</title>
 <style>
   :root { color-scheme: light; }
-  body { font-family: -apple-system, system-ui, sans-serif; margin: 0; background: #f6f7f9; color: #1c1e21; }
-  header { background: #111827; color: #fff; padding: 28px 20px; }
-  header h1 { margin: 0 0 6px; font-size: 24px; }
-  header p { margin: 0; color: #9ca3af; font-size: 14px; }
-  main { max-width: 720px; margin: 0 auto; padding: 20px 16px 60px; }
-  .card { background: #fff; border-radius: 14px; box-shadow: 0 1px 3px rgba(0,0,0,.08); padding: 18px; margin-bottom: 14px; }
-  .card h2 { margin: 0 0 4px; font-size: 19px; }
-  .card h2 a { color: #1c1e21; text-decoration: none; }
-  .card h2 a:hover { text-decoration: underline; }
-  .spec { margin: 0 0 8px; color: #4b5563; font-size: 14px; }
-  .notes { margin: 0 0 8px; font-size: 13px; color: #6b7280; line-height: 1.45; }
-  .meta { margin: 0; font-size: 12px; color: #9ca3af; }
-  .meta a { color: #2563eb; font-weight: 600; text-decoration: none; }
-  footer { text-align: center; color: #9ca3af; font-size: 12px; padding: 20px; }
+  body { font-family: -apple-system, system-ui, "Segoe UI", sans-serif; margin: 0; background: #ffffff; color: #232a3b; }
+  header { text-align: center; padding: 44px 20px 10px; }
+  header h1 { margin: 0 0 10px; font-size: 26px; letter-spacing: 1px; color: #1f2a44; }
+  header p { margin: 0; color: #8a93a6; font-size: 14px; }
+  main { max-width: 760px; margin: 0 auto; padding: 10px 20px 70px; }
+  .product { margin: 44px 0 60px; }
+  .product > h2 { text-align: center; margin: 0 0 8px; font-size: 21px; letter-spacing: 2px; color: #2f66c3; }
+  .product > .spec { text-align: center; margin: 0 0 26px; color: #5b6478; font-size: 15px; }
+  .summary { width: 100%; border-collapse: collapse; margin: 0 0 30px; font-size: 14px; }
+  .summary th, .summary td { text-align: left; padding: 13px 18px; border: 1px solid #d9e1ef; }
+  .summary th { background: #eaf0fa; color: #1f2a44; width: 34%; font-weight: 600; }
+  .summary td { background: #f3f6fc; color: #3c4457; }
+  .report { display: flex; align-items: center; gap: 20px; border: 1px solid #d9e1ef; border-radius: 4px; padding: 22px 24px; margin: 0 0 16px; background: #fff; }
+  .report-info { flex: 1; min-width: 0; }
+  .report h3 { margin: 0 0 6px; font-size: 17px; color: #1f2a44; }
+  .report .desc { margin: 0 0 4px; font-size: 14px; color: #3c4457; }
+  .report .sub { margin: 0; font-size: 12.5px; color: #8a93a6; word-break: break-all; }
+  .btn { flex: 0 0 auto; display: inline-block; background: #2f5fc0; color: #fff; text-decoration: none; font-weight: 700; font-size: 13px; letter-spacing: 1px; padding: 14px 26px; border-radius: 3px; white-space: nowrap; }
+  .btn:hover { background: #274ea3; }
+  footer { text-align: center; color: #aab2c5; font-size: 12px; padding: 24px; border-top: 1px solid #eef1f6; }
+  @media (max-width: 560px) {
+    .report { flex-direction: column; align-items: stretch; }
+    .btn { text-align: center; }
+  }
 </style>
 </head>
 <body>
 <header>
-  <h1>COA Library</h1>
-  <p>5 certificates &middot; updated 2026-09-14</p>
+  <h1>CERTIFICATE OF ANALYSIS INDEX</h1>
+  <p>5 products &middot; updated 2026-09-14</p>
 </header>
 <main>
 
-    <article class="card">
-        <h2><a href="https://jorgitin02.github.io/public-images/coa/testosterone-cypionate-250mg-10ml-janoshik-coa-2026-08-24.pdf">Testosterone Cypionate</a></h2>
-        <p class="spec">250 mg/mL · 10 mL vial (Janoshik)</p>
-        <p class="notes">Combined PDF: index of 3 original Janoshik verification links (#171465, #171472, #165299) + Janoshik report #229388 (Testosterone Cypionate 267.48 mg/ml, sample AA1, analysis 10 Sep 2026) as full image on page 2, verifiable with unique key QPCPTB6IVIRC; updated 2026-09-14</p>
-        <p class="meta">Added 2026-08-24 &middot; <a href="https://jorgitin02.github.io/public-images/coa/testosterone-cypionate-250mg-10ml-janoshik-coa-2026-08-24.pdf">View COA</a></p>
-    </article>
-    <article class="card">
-        <h2><a href="https://jorgitin02.github.io/public-images/coa/retatrutide-10mg-coa-2026-05-06.png">Retatrutide</a></h2>
-        <p class="spec">10 mg</p>
-        <p class="notes">Direct PNG URL</p>
-        <p class="meta">Added 2026-08-17 &middot; <a href="https://jorgitin02.github.io/public-images/coa/retatrutide-10mg-coa-2026-05-06.png">View COA</a></p>
-    </article>
-    <article class="card">
-        <h2><a href="https://jorgitin02.github.io/public-images/coa/nad-plus-500mg-coa-2026-05-21.png">NAD+</a></h2>
-        <p class="spec">500 mg</p>
-        <p class="notes">Direct PNG URL</p>
-        <p class="meta">Added 2026-07-22 &middot; <a href="https://jorgitin02.github.io/public-images/coa/nad-plus-500mg-coa-2026-05-21.png">View COA</a></p>
-    </article>
-    <article class="card">
-        <h2><a href="https://jorgitin02.github.io/public-images/coa/retatrutide-30mg-coa-2026-07-16.png">Retatrutide</a></h2>
-        <p class="spec">30 mg</p>
-        <p class="notes">Direct PNG URL</p>
-        <p class="meta">Added 2026-07-18 &middot; <a href="https://jorgitin02.github.io/public-images/coa/retatrutide-30mg-coa-2026-07-16.png">View COA</a></p>
-    </article>
-    <article class="card">
-        <h2><a href="https://jorgitin02.github.io/public-images/coa/ghk-cu-50mg-coa-2026-07-13.png">GHK-Cu</a></h2>
-        <p class="spec">50 mg</p>
-        <p class="notes">Direct PNG URL</p>
-        <p class="meta">Added 2026-07-18 &middot; <a href="https://jorgitin02.github.io/public-images/coa/ghk-cu-50mg-coa-2026-07-13.png">View COA</a></p>
-    </article>
+    <section class="product">
+      <h2>TESTOSTERONE CYPIONATE</h2>
+      <p class="spec">250 mg/mL  |  10 mL</p>
+      <table class="summary"><tr><th>Verification source</th><td>Janoshik Analytical</td></tr><tr><th>Documents included</th><td>4 original verification reports</td></tr><tr><th>Access method</th><td>Select a report below to open the original record</td></tr></table>
+      
+      <div class="report">
+        <div class="report-info">
+          <h3>Report #171465</h3>
+          <p class="desc">Testosterone Cypionate 250 mg</p>
+          <p class="sub">https://verify.janoshik.com/tests/171465-02_250mg_4PXARE612UR9</p>
+        </div>
+        <a class="btn" href="https://verify.janoshik.com/tests/171465-02_250mg_4PXARE612UR9">OPEN ORIGINAL REPORT</a>
+      </div>
+      <div class="report">
+        <div class="report-info">
+          <h3>Report #171472</h3>
+          <p class="desc">Testosterone Cypionate 250 mg - MCT / GC-MS</p>
+          <p class="sub">https://verify.janoshik.com/tests/171472-Testosterone_Cypionate_250mg_MCT_GCMS_E9WN8DMCRRYV</p>
+        </div>
+        <a class="btn" href="https://verify.janoshik.com/tests/171472-Testosterone_Cypionate_250mg_MCT_GCMS_E9WN8DMCRRYV">OPEN ORIGINAL REPORT</a>
+      </div>
+      <div class="report">
+        <div class="report-info">
+          <h3>Report #165299</h3>
+          <p class="desc">Testosterone Cypionate 250 mg</p>
+          <p class="sub">https://verify.janoshik.com/tests/165299-Testosterone_Cypionate_250mg_DQ5BDAMD1ZPW</p>
+        </div>
+        <a class="btn" href="https://verify.janoshik.com/tests/165299-Testosterone_Cypionate_250mg_DQ5BDAMD1ZPW">OPEN ORIGINAL REPORT</a>
+      </div>
+      <div class="report">
+        <div class="report-info">
+          <h3>Report #229388</h3>
+          <p class="desc">Testosterone Cypionate 267.48 mg/ml - sample AA1</p>
+          <p class="sub">Analysis 10 SEP 2026 - unique key QPCPTB6IVIRC - verify at janoshik.com/verify</p>
+        </div>
+        <a class="btn" href="https://www.janoshik.com/verify/">VERIFY WITH KEY</a>
+      </div>
+    </section>
+    <section class="product">
+      <h2>RETATRUTIDE</h2>
+      <p class="spec">10 mg</p>
+      <table class="summary"><tr><th>Documents included</th><td>1 certificate of analysis</td></tr><tr><th>Access method</th><td>Select below to open the certificate</td></tr></table>
+      
+      <div class="report">
+        <div class="report-info">
+          <h3>Certificate of Analysis</h3>
+          <p class="desc">Retatrutide 10 mg</p>
+          <p class="sub">https://jorgitin02.github.io/public-images/coa/retatrutide-10mg-coa-2026-05-06.png</p>
+        </div>
+        <a class="btn" href="https://jorgitin02.github.io/public-images/coa/retatrutide-10mg-coa-2026-05-06.png">OPEN COA</a>
+      </div>
+    </section>
+    <section class="product">
+      <h2>NAD+</h2>
+      <p class="spec">500 mg</p>
+      <table class="summary"><tr><th>Documents included</th><td>1 certificate of analysis</td></tr><tr><th>Access method</th><td>Select below to open the certificate</td></tr></table>
+      
+      <div class="report">
+        <div class="report-info">
+          <h3>Certificate of Analysis</h3>
+          <p class="desc">NAD+ 500 mg</p>
+          <p class="sub">https://jorgitin02.github.io/public-images/coa/nad-plus-500mg-coa-2026-05-21.png</p>
+        </div>
+        <a class="btn" href="https://jorgitin02.github.io/public-images/coa/nad-plus-500mg-coa-2026-05-21.png">OPEN COA</a>
+      </div>
+    </section>
+    <section class="product">
+      <h2>RETATRUTIDE</h2>
+      <p class="spec">30 mg</p>
+      <table class="summary"><tr><th>Documents included</th><td>1 certificate of analysis</td></tr><tr><th>Access method</th><td>Select below to open the certificate</td></tr></table>
+      
+      <div class="report">
+        <div class="report-info">
+          <h3>Certificate of Analysis</h3>
+          <p class="desc">Retatrutide 30 mg</p>
+          <p class="sub">https://jorgitin02.github.io/public-images/coa/retatrutide-30mg-coa-2026-07-16.png</p>
+        </div>
+        <a class="btn" href="https://jorgitin02.github.io/public-images/coa/retatrutide-30mg-coa-2026-07-16.png">OPEN COA</a>
+      </div>
+    </section>
+    <section class="product">
+      <h2>GHK-CU</h2>
+      <p class="spec">50 mg</p>
+      <table class="summary"><tr><th>Documents included</th><td>1 certificate of analysis</td></tr><tr><th>Access method</th><td>Select below to open the certificate</td></tr></table>
+      
+      <div class="report">
+        <div class="report-info">
+          <h3>Certificate of Analysis</h3>
+          <p class="desc">GHK-Cu 50 mg</p>
+          <p class="sub">https://jorgitin02.github.io/public-images/coa/ghk-cu-50mg-coa-2026-07-13.png</p>
+        </div>
+        <a class="btn" href="https://jorgitin02.github.io/public-images/coa/ghk-cu-50mg-coa-2026-07-13.png">OPEN COA</a>
+      </div>
+    </section>
 </main>
 <footer>Third-party certificates of analysis, hosted permanently.</footer>
 </body>
