@@ -24,6 +24,40 @@ Read section 6 (environment hazards) BEFORE any GUI work. Three failure
 classes each burned hours on 2026-09-19 before being understood; every one
 is now documented here with its working path. Do not rediscover them.
 
+## Harness compatibility (read before GUI work)
+
+This skill is shared by ZCode and OpenCode sessions in this repo. Steps 0-4
+and 7 (QR, design, render/verify, links.csv, commit) are harness-neutral.
+Steps 5-6 name ZCode computer-use tools; under OpenCode use the mapping
+below — the workflow and its failure modes are identical.
+
+Identify your harness by the tools you actually have: if `open_application`
+and `perform_action` exist, you are on ZCode; if the action tools are named
+`perform_secondary_action` / `type_text` / `click`, you are on OpenCode.
+
+| Action | ZCode (`computer-use:computer-use`) | OpenCode (`open-computer-use` MCP) |
+|---|---|---|
+| Permissions | `request_access` | `open-computer-use doctor` (shell, once) |
+| Launch / activate app | `open_application {bundle_id, activate:true}` | shell `open -a NIIMBOT` (no app tool) |
+| Observe state | `get_app_state` | `get_app_state` (AX tree + image) |
+| Element click | `left_click` | `click {element_index}` |
+| Double-click | `double_click` | `click {element_index, click_count:2}` |
+| Named AX action | `perform_action {action:"AX..."}` | `perform_secondary_action {action:"AX..."}` |
+| Set field value | `set_value` | `set_value` (same) |
+| Type text | `type` | `type_text` |
+| Key chord | `press_key` | `press_key` (same) |
+| Screenshot | `screenshot` | `get_app_state` image (no separate tool) |
+| Wait | `wait` | shell `sleep` |
+| Zoom | `zoom` | none — prefer element indexes over pixels |
+
+ZCode loads the `computer-use:computer-use` skill first; OpenCode has no
+computer-use skill — its tools come straight from the `open-computer-use`
+MCP, so skip that load step. OpenCode has no app-launch tool: launch and
+activate NIIMBOT with `open -a NIIMBOT` and confirm with `get_app_state`.
+Whether that warms the Flutter AX tree as reliably as ZCode's
+`open_application activate=true` is not yet re-verified (flagged again in
+step 5).
+
 ## 0. Inputs to collect
 
 Ask the user only for what is missing; never invent values:
@@ -181,12 +215,19 @@ the COA row's `qr_path`/`qr_public_url` columns (update that row in place).
 
 ## 5. Import into NIIMBOT (computer use)
 
-Load the `computer-use:computer-use` skill first. Derive every pixel
-coordinate from the LATEST screenshot raster — never reuse stale
-coordinates. After every action: `wait` 2–4s, re-observe, verify. The app
-is Flutter-based and only exposes its accessibility tree after
+**ZCode:** load the `computer-use:computer-use` skill first.
+**OpenCode:** skip that; drive the `open-computer-use` MCP directly and
+launch/activate the app with shell `open -a NIIMBOT`. See the harness table
+above for every tool-name difference.
+
+Derive every pixel coordinate from the LATEST screenshot raster — never
+reuse stale coordinates. After every action: wait 2–4s (`wait` on ZCode,
+shell `sleep` on OpenCode), re-observe, verify. The app is Flutter-based and
+only exposes its accessibility tree after
 `open_application {"bundle_id": "com.niimbot.print", activate=true}` warms
-it; before that the tree is ~8 generic elements.
+it (OpenCode equivalent: `open -a NIIMBOT`; not yet re-verified — if the
+tree returns ~8 generic elements, re-run `get_app_state` once the app is
+frontmost and prefer element indexes from the fresh state).
 
 Launch and editor:
 
@@ -198,7 +239,8 @@ Launch and editor:
    stock). Never open or edit the user's existing templates (hgh24-glm,
    reta30-glm, retat10-glm, hgh25iu, kpv10, ss31-10mg, tirze10, ...).
 
-Image import — semantic AX ONLY:
+Image import — semantic AX ONLY (OpenCode: use `perform_secondary_action`
+where this says `perform_action`; `set_value` is the same name):
 
 3. Click the **Image** tool (left toolbar). The native macOS open panel
    appears. Do NOT send Cmd+Shift+G — the Go-to-Folder sheet never opens
@@ -221,10 +263,12 @@ Save and rename:
    (`Templates-<timestamp>`); there is no name dialog. Verify on Home →
    Recent: a new card with the correct thumbnail must exist before
    renaming.
-7. Reopen the template from Recent. **Double-click the tab title** — use
-   the dedicated `double_click` tool; two separate `left_click` calls do
-   NOT register as a double-click — and the **Rename** dialog opens with
-   the current name pre-selected. Send app-scoped `type` with the new short
+7. Reopen the template from Recent. **Double-click the tab title** —
+   ZCode: the dedicated `double_click` tool; OpenCode: `click` with
+   `click_count: 2`. Two separate single clicks do NOT register as a
+   double-click — and the **Rename** dialog opens with
+   the current name pre-selected. Send app-scoped `type` (OpenCode:
+   `type_text`) with the new short
    name (keyboard reaches focused fields while the app is frontmost; send
    `cmd+a` first if the text is not selected), then click **Done**.
 8. Final verify: Home → Recent shows the renamed template with the correct
@@ -246,6 +290,9 @@ Known dead ends — each one cost real time on 2026-09-19, do not retry:
   printer — while it says "Unconnected" printing is impossible anyway.
 
 ## 6. Environment hazards
+
+Tool names below are ZCode's; if you are on OpenCode, translate them via the
+harness table above.
 
 **Locked screen (mid-task killer).** When the Mac locks, `loginwindow`
 takes front and everything degrades at once: `open_application
