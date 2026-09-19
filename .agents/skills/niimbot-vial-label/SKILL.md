@@ -13,31 +13,83 @@ description: >
 
 # NIIMBOT vial label: design, verify, register, import
 
-Proven end-to-end 2026-09-19 (retatrutide-10mg label, saved in-app as
-`retat10-glm`). Division of labor: all design happens in this repo where it
-is deterministic and reviewable; the NIIMBOT GUI is used only for import,
-save, and rename. Never author label content by clicking in the app — its
-Flutter UI ignores semantic writes and text/position editing is unreliable.
+Proven end-to-end 2026-09-19 with three templates: `retat10-glm`,
+`hgh24-glm`, `reta30-glm`. Division of labor: all design happens in this
+repo where it is deterministic and reviewable; the NIIMBOT GUI is used only
+for import, save, and rename. Never author label content by clicking in the
+app — its Flutter UI ignores semantic writes and text/position editing is
+unreliable.
+
+Read section 6 (environment hazards) BEFORE any GUI work. Three failure
+classes each burned hours on 2026-09-19 before being understood; every one
+is now documented here with its working path. Do not rediscover them.
 
 ## 0. Inputs to collect
 
 Ask the user only for what is missing; never invent values:
 
-- Compound name and vial fill amount (e.g. retatrutide 10 mg)
-- Real/actual mass if the user provides one (e.g. 11.71 mg)
-- Vial size (e.g. 3 ml) and diluent volume/type (e.g. 2 ml water)
-- Test date (default: today, printed as MM/DD/YYYY)
-- QR target: if `coa/` already has a COA for this compound and `qr/` has its
-  QR, embed that existing QR — never generate a replacement QR unless none
-  exists or the user asks. New QRs must be registered in `links.csv` and
-  point to the final GitHub Pages asset URL.
+- Compound name and vial fill amount (e.g. retatrutide 30 mg)
+- Real/actual mass or measured content — take it from the COA when the user
+  points at one (e.g. HGH: "8.35 mg / 25.05 IU actual"; reta: net content
+  36.06 mg). Nominal amount goes in the title/line 1; actuals labeled
+  "ACTUAL" or "REAL MASS".
+- Vial size and diluent volume/type ONLY if the user provides them (the
+  10 mg label had "3 ML VIAL • 2 ML WATER"; the 24 IU and 30 mg labels omit
+  the line entirely). Omit rather than guess.
+- Test date: print the COA's own analysis/report date as MM/DD/YYYY — the
+  QR points at that exact COA, so TESTED should match it. (Do not default
+  to today's date when a COA date exists.)
+- Reconstitution date: requested BLANK — print "RECON" plus an underline
+  rect and let the user hand-write it after mixing.
+- Batch/cap identifier (e.g. "BLUE CAP") when the COA or user names one —
+  it distinguishes lookalike vials.
+- QR target: if `coa/` has a COA for this compound and `qr/` has its QR,
+  embed that existing QR — never generate a replacement unless none exists
+  or the user asks. A new QR points at the final GitHub Pages asset URL and
+  gets registered in `links.csv` (see step 3).
 
-Content policy (from repo AGENTS.md): no purity, expiration, laboratory, or
-regulatory claims that the user did not provide. Print only the values given.
+Content policy (repo AGENTS.md): no purity, expiration, laboratory, or
+regulatory claims that the user did not provide. Print only the values
+given. Purity stays on the COA behind the QR; it is not printed on the
+label.
 
-## 1. Design
+## 1. QR: reuse, or generate and decode-verify
 
-Work in `labels/`. Copy the template and edit it:
+No QR tooling is installed system-wide. One-off venv (fast, no repo noise):
+
+```bash
+python3 -m venv /tmp/qrtools
+/tmp/qrtools/bin/pip install -q segno zxing-cpp pillow
+```
+
+Generate (EC level Q suits small curved vials; 4-module quiet zone; repo
+convention is 1024x1024 PNG, same basename as its target) and
+DECODE-ASSERT the saved file — generation alone is not verification:
+
+```bash
+/tmp/qrtools/bin/python - <<'EOF'
+import segno, zxingcpp
+from PIL import Image
+url = "https://jorgitin02.github.io/public-images/coa/<coa-file>.pdf"
+qr = segno.make(url, error='q')
+qr.save("/tmp/qr.png", scale=1024 // (qr.version * 4 + 17 + 8), border=4)
+img = Image.open("/tmp/qr.png").convert("L").resize((1024, 1024), Image.NEAREST)
+img.save("qr/<basename>.png")
+bars = zxingcpp.read_barcodes(Image.open("qr/<basename>.png"))
+assert bars and bars[0].text == url, "QR decode mismatch"
+print("OK")
+EOF
+```
+
+(zxingcpp Barcode objects expose `.text` / `.format`; there is no
+`error_correction_level` attribute.)
+
+Verify the target public URL is live and returns the right media type
+(`curl -sI`) before pointing a QR at it.
+
+## 2. Design
+
+Work in `labels/`. Copy the template and fill it in:
 
 ```bash
 cp .agents/skills/niimbot-vial-label/assets/label-template-40x20.svg \
@@ -45,25 +97,41 @@ cp .agents/skills/niimbot-vial-label/assets/label-template-40x20.svg \
 ```
 
 Naming: lowercase ASCII, hyphens, `<subject>-<amount>-vial-label-<who>-<date>`.
-`<who>` is a short tag for who/what produced it (the user may ask for a model
-name — e.g. `glm`). Never overwrite an existing file; use a new date or tag.
+`<who>` is a short tag for who/what produced it (the user may ask for a
+model name — e.g. `glm`). Never overwrite an existing file; use a new date
+or tag.
 
-Layout facts baked into the template (all units are mm, viewBox 0 0 40 20):
+CRITICAL — embed the QR as a base64 data URI. librsvg 2.62+ (rsvg-convert
+on this Mac) SILENTLY drops `<image xlink:href="../qr/name.png">`: any file
+reference escaping the SVG's directory renders blank with exit 0, and a
+bare filename resolves into labels/ where no QR lives. Either way the PNG
+and PDF come out with NO QR and no error. This killed the first retat10
+render and the first two hgh/reta renders. Inject the data URI while
+writing the SVG:
 
-- Text zone: x = 1.7 to ~27.0. Anything wider than ~25.3mm starting at x=1.7
-  collides with the QR — this is the failure that actually happens. Fact
-  lines are Helvetica Neue Condensed Bold 2.0mm; keep each under ~25mm and
-  verify numerically (step 2).
-- Title: Helvetica Neue Condensed Bold 4.6mm, baseline y=5.6, rule below.
-  Do not enlarge it: at 4.9mm the title's arms reach into the QR column.
-- QR: 11.2x11.2 at x=27.3, y=4.0, referencing `../qr/<qr-file>.png`
-  (relative path — resolves at render time, keeps the SVG portable).
+```bash
+b64=$(base64 -i qr/<basename>.png | tr -d '\n')
+# xlink:href="data:image/png;base64,$b64"
+# and keep a comment in the SVG naming the source qr/ asset
+```
+
+Layout facts baked into the template (all units mm, viewBox 0 0 40 20):
+
+- Text zone x = 1.7 to ~27.0. Fact lines are Helvetica Neue Condensed Bold
+  2.0mm; keep each MEASURED width <= ~25.5mm. A line that clears the 26.9mm
+  limit by a few hundredths of a mm (26.81 happened today) is a failure in
+  waiting across renderers — rebalance the words between lines instead of
+  squeezing (e.g. move the batch/cap color to line 1 and leave the date
+  alone on line 2). Verify numerically in step 3.
+- Title: 4.6mm, baseline y=5.6, rule below. Do not enlarge: at 4.9mm the
+  title's arms reach into the QR column.
+- RECON line (y=16.7): "RECON" text + underline rect x=8.6 y=16.75
+  w=14.4 h=0.25 — blank for handwriting.
+- QR: 11.2x11.2 at x=27.3, y=4.0 (data URI), "COA" caption under it.
 - Black (#000) on white only. Thermal printing: white = no ink. Bold,
   high-contrast, no fine decorative lines, one simple border.
 
-Write real content over the placeholders, then go to step 2.
-
-## 2. Render and verify
+## 3. Render and verify
 
 ```bash
 .agents/skills/niimbot-vial-label/scripts/build_and_check.sh \
@@ -71,76 +139,156 @@ Write real content over the placeholders, then go to step 2.
 ```
 
 The script renders the print PNG (640x320, 16 px/mm) and an exact-40x20mm
-page PDF next to the SVG, then checks: PNG is 640x320, PDF rasterizes to
+page PDF next to the SVG, then checks: PNG is 640x320; PDF rasterizes to
 ~113x57 at 72dpi (= 40x20mm; note `magick identify` lies about rsvg PDF
-page size — do not use it for this check), and per-band ink extents via
-`scripts/measure_ink.py` (reports the rightmost ink in the text zone so
-overflow into the QR gutter is caught numerically).
+page size — do not use it for this check); per-band ink extents
+(`scripts/measure_ink.py`) so text overflow into the QR gutter is caught
+numerically; and QR-zone ink — a blank QR now FAILS the build instead of
+passing silently.
 
-Then Read the PNG visually — confirm nothing is clipped, the QR is intact,
-and the text hierarchy reads like a professional lab label. If a fact line
-does not fit, shorten the wording or drop the font to 1.9mm (all three fact
-lines together, never one alone). Re-run until clean.
+Then Read the PNG visually — nothing clipped, QR intact, text hierarchy
+reads like a professional lab label — and decode the QR from the rendered
+PNG at print resolution:
 
-## 3. Register in links.csv
+```bash
+/tmp/qrtools/bin/python - <<'EOF'
+import zxingcpp
+from PIL import Image
+img = Image.open("labels/<file>.png").convert("L")
+qr = img.crop((436, 64, 616, 244)).resize((716, 716), Image.NEAREST)
+bars = zxingcpp.read_barcodes(qr)
+assert bars and bars[0].text == "<expected public url>"
+print("OK")
+EOF
+```
 
-Append one row (match header order exactly):
+If a fact line does not fit: shorten/rebalance the wording; failing that,
+drop ALL fact lines to 1.9mm together, never one alone. Re-run until clean.
+
+## 4. Register in links.csv
+
+Append one label row (match header order exactly):
 
 ```csv
-<id>,label,labels/<file>.svg,,<existing qr path>,<qr public url>,labels/<file>.png,<yyyy-mm-dd>,"<one-line description; QR destination; PDF twin note>"
+<id>,label,labels/<file>.svg,,<qr path>,<qr public url>,labels/<file>.png,<yyyy-mm-dd>,"<one-line description; QR destination; PDF twin note>"
 ```
 
 `id` equals the SVG basename. `public_url` stays empty unless the label
 itself is being hosted. Reference the embedded QR's path and its hosted URL
-so the destination stays recoverable. The retatrutide row
-(`retatrutide-10mg-3ml-vial-label-glm-2026-09-19`) is the worked example.
+so the destination stays recoverable. If a NEW QR was generated, also fill
+the COA row's `qr_path`/`qr_public_url` columns (update that row in place).
+`qr_public_url` values 404 until the next push — record them anyway.
 
-## 4. Import into NIIMBOT (computer use)
+## 5. Import into NIIMBOT (computer use)
 
-Load the `computer-use:computer-use` skill first, then follow this flow.
-Derive every pixel coordinate from the LATEST screenshot raster — never
-reuse stale coordinates. After every action: `wait` 2–4s, re-observe, verify.
-The app is Flutter-based and only exposes its accessibility tree after
-`open_application(activate=true)` warms it; before that the tree is ~8
-generic elements.
+Load the `computer-use:computer-use` skill first. Derive every pixel
+coordinate from the LATEST screenshot raster — never reuse stale
+coordinates. After every action: `wait` 2–4s, re-observe, verify. The app
+is Flutter-based and only exposes its accessibility tree after
+`open_application {"bundle_id": "com.niimbot.print", activate=true}` warms
+it; before that the tree is ~8 generic elements.
 
-1. Launch/activate: `open_application {"bundle_id": "com.niimbot.print",
-   activate=true}`. The window may live on a secondary display — fine.
-2. If the editor is not open: click **Create a label**, then
-   **Create with this label** on the EL40\*20-345Laser Silver card (40x20mm,
-   matches the stock). Never open or edit the user's existing templates
-   (hgh25iu, kpv10, tirze10, ...).
-3. Click the **Image** tool (left toolbar, 2nd icon). A native macOS open
-   panel appears — this panel is fully accessible and is the reliable path.
-4. In the panel: send Cmd+Shift+G (scoped to the panel window). If it
-   refuses with `foreground_required`, re-run `open_application` with
-   activate=true plus the panel's pid/window_id, observe, retry. Type the
-   full absolute path of the label PNG into the focused PathTextField
-   (a11y set works — it is a native AppKit field), press Return, then click
-   **Open** (native button — AXPress works).
-5. The app auto-fits the image to the canvas and opens an Image Style panel
-   (contrast/dither preview). Screenshot-verify the whole label is placed,
-   nothing clipped.
+Launch and editor:
+
+1. Launch/activate. If an "Updates Available" dialog blocks the app, click
+   **Do not update** (never update mid-task). While the screen is locked
+   this dialog cannot be dismissed — see section 6.
+2. If the editor is not open: click **Create a label**, then **Create with
+   this label** on the EL\*20-345Laser Silver card (40x20mm, matches the
+   stock). Never open or edit the user's existing templates (hgh24-glm,
+   reta30-glm, retat10-glm, hgh25iu, kpv10, ss31-10mg, tirze10, ...).
+
+Image import — semantic AX ONLY:
+
+3. Click the **Image** tool (left toolbar). The native macOS open panel
+   appears. Do NOT send Cmd+Shift+G — the Go-to-Folder sheet never opens
+   (the chord is accepted-but-dropped, or refused as foreground_required).
+   Do NOT click rows — element clicks, coordinate clicks, and event-strategy
+   clicks are ALL dropped by this panel; Open stays disabled forever.
+4. `set_value` the panel's **textfield Search** element (native AppKit —
+   a11y writes DO work here) to the exact label PNG filename. Then
+   `perform_action AXConfirm` on it. Wait ~3s: the panel switches to
+   "Searching This Mac" and lists the file.
+5. `perform_action AXOpen` on the result row's **cell** element. The panel
+   closes and the image auto-fits the canvas; the Image Style panel opens.
+   (The receipt may say `possibly_sent` with `attribute_unsupported` — it
+   still works. Verify with a screenshot that the whole label is placed,
+   nothing clipped, before saving.)
+
+Save and rename:
+
 6. Click **Save**. It saves silently under the auto tab name
-   (`Templates-<timestamp>`); there is no name dialog. If the click shows a
-   not-allowed cursor, the save may still have happened — verify on Home →
-   Recent before retrying.
-7. Rename (required so the template is identifiable): open the template
-   from Recent, click the **pencil icon** next to the tab title, in the
-   Rename dialog the current name is pre-selected — send app-scoped
-   `type` with the new short name (typing works ONLY into genuinely focused
-   fields; keep names short, e.g. `retat10-glm`), click **Done**.
+   (`Templates-<timestamp>`); there is no name dialog. Verify on Home →
+   Recent: a new card with the correct thumbnail must exist before
+   renaming.
+7. Reopen the template from Recent. **Double-click the tab title** — use
+   the dedicated `double_click` tool; two separate `left_click` calls do
+   NOT register as a double-click — and the **Rename** dialog opens with
+   the current name pre-selected. Send app-scoped `type` with the new short
+   name (keyboard reaches focused fields while the app is frontmost; send
+   `cmd+a` first if the text is not selected), then click **Done**.
 8. Final verify: Home → Recent shows the renamed template with the correct
    thumbnail. Report the saved name to the user.
 
-Do not click **Print** unless the user asks and the app shows a connected
-printer — while it says "Unconnected" printing is impossible anyway.
-Known dead ends (do not retry): AXPress on in-app Flutter buttons,
-`set_value` on in-app text fields (writes never reach the app), Cmd+S (no
-effect), typed text with stale focus (lands nowhere).
+Known dead ends — each one cost real time on 2026-09-19, do not retry:
 
-## 5. Committing
+- **There is no pencil icon next to the tab title.** The small icon there
+  is the ✕ close — AXPress on it closes the editor and kicks you to Home.
+- The ⌄ dropdown next to "+" has no rename (Select new template / New
+  blank label / Select new label paper / Open local label). Single clicks
+  or AXPress on the tab title do nothing.
+- Cmd+Shift+G / typed paths / clicking result rows inside the file panel
+  (see step 3–5 for the working path).
+- AXPress on in-app Flutter content tools that need a dialog response,
+  `set_value` on in-app Flutter text fields (writes never reach the app —
+  native AppKit fields are fine), Cmd+S, typed text with stale focus.
+- Do not click **Print** unless the user asks AND the app shows a connected
+  printer — while it says "Unconnected" printing is impossible anyway.
+
+## 6. Environment hazards
+
+**Locked screen (mid-task killer).** When the Mac locks, `loginwindow`
+takes front and everything degrades at once: `open_application
+activate=true` fails with "never became foreground"; app-scoped chords and
+clicks return accepted-but-never-executed; AX trees fill with ~1000 ghost
+menu elements (zero-size bounds, duplicates of every app's menus); the
+`screenshot` tool errors on screen recording. Detect:
+
+```bash
+lsappinfo info -only name "$(lsappinfo front)"   # contains "loginwindow"?
+```
+
+Test THIS command's output — `lsappinfo front` alone prints the ASN line
+first, which has no name and makes naive greps false-positive "unlocked".
+Recover: poll until unlocked; then, if the app's AX tree is still polluted
+or windows are ghosts, quit and relaunch the app (`osascript -e 'quit app
+"NIIMBOT"'` may print "User canceled" yet still quit — confirm with
+`pgrep`; note System Events itself has no assistive access, so plain
+`quit app` is the route). Templates saved before the wedge persist.
+Relaunches may show the update dialog again — dismiss it.
+
+**Screenshots.** The full-screen `screenshot` tool can fail with a stale
+screen-recording helper error while `get_app_state include_screenshot=true`
+(app-scoped) keeps working — prefer app-scoped captures for verification
+regardless; they show exactly the app you are driving.
+
+**Input reliability ranking** (use top-down; never trust a receipt alone —
+`action_sent=true` means "possibly happened", always re-observe):
+
+1. Semantic AX actions: AXPress / set_value / AXConfirm / AXOpen.
+2. App-scoped `type` into a genuinely focused field while frontmost.
+3. Dedicated `double_click` (the only thing that opens Rename).
+4. Raw event clicks/keys — often accepted-but-dropped; last resort only.
+
+**Zoom/coordinate mapping.** When clicking by pixel inside a native panel
+captured as part of an app-window screenshot, coordinates can land in the
+wrong space. `zoom` into the panel region first and click within the zoomed
+frame — or skip coordinates entirely via the AX path in section 5.
+
+## 7. Committing
 
 Repo rule: commit and push only when the user explicitly asks. When they
-do, include the SVG/PNG/PDF trio and the links.csv row (and the new QR +
-COA row first if a QR was generated for this label).
+do, include the SVG/PNG/PDF trio and the links.csv rows (new QR + COA-row
+update first if a QR was generated).
+
+Base directory for this skill: /Users/jorgitin/projects/print_farm/.agents/skills/niimbot-vial-label

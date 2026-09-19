@@ -3,13 +3,20 @@
     NIIMBOT vial label template, 40x20mm, black thermal on transparent stock.
     All coordinates are millimeters. Proven layout constraints:
       - Text zone starts at x=1.7. Fact lines (Helvetica Neue Condensed Bold
-        2.0mm) must each stay under ~25mm wide, i.e. right edge <= 27.0,
-        or they collide with the QR at x=27.3. The title (4.6mm) clears the
-        QR's top-left corner; anything bigger will overlap the QR column.
-        Verify with scripts/measure_ink.py after rendering.
-      - QR references ../qr/<file>.png relative to labels/ so the SVG stays
-        portable. Replace QR_BASENAME with the registered QR for this
-        compound (reuse an existing qr/ asset when one exists).
+        2.0mm) must each MEASURE <= ~25.5mm wide (right edge <= 26.9) or they
+        collide with the QR at x=27.3. A line that clears the limit by only a
+        few tenths of a mm is a failure in waiting: rebalance the wording
+        between lines instead of squeezing. Verify with scripts/measure_ink.py.
+      - Title: 4.6mm, baseline y=5.6, rule below. Do not enlarge: at 4.9mm the
+        arms reach into the QR column.
+      - QR: 11.2x11.2 at x=27.3, y=4.0. Embed it as a base64 DATA URI in
+        xlink:href (data:image/png;base64,...). librsvg 2.62+ (rsvg-convert)
+        SILENTLY drops file hrefs that escape the SVG's directory —
+        ../qr/name.png renders blank with exit 0 — and a bare filename points
+        into labels/ where no QR lives. Keep the source qr/ asset registered
+        in links.csv and note it in a comment in the SVG.
+      - RECON line (y=16.7) is intentionally blank: "RECON" + underline rect,
+        to hand-write the reconstitution date after mixing.
       - Keep fact lines at the same font size as each other; shorten wording
         rather than mixing sizes. Print only user-verified values.
   -->
@@ -19,10 +26,11 @@
   <text x="1.7" y="5.6" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="4.6" fill="#000000">COMPOUND</text>
   <rect x="1.7" y="6.65" width="24.2" height="0.28" fill="#000000"/>
 
-  <text x="1.7" y="9.9"  font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">10 MG &#8226; REAL MASS 00.00 MG</text>
-  <text x="1.7" y="13.3" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">3 ML VIAL &#8226; 2 ML WATER</text>
-  <text x="1.7" y="16.7" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">TESTED MM/DD/YYYY</text>
+  <text x="1.7" y="9.9"  font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">AMOUNT &#8226; REAL MASS 00.00 MG</text>
+  <text x="1.7" y="13.3" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">BATCH/CAP &#8226; TESTED MM/DD/YYYY</text>
+  <text x="1.7" y="16.7" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">RECON</text>
+  <rect x="8.6" y="16.75" width="14.4" height="0.25" fill="#000000"/>
 
-  <image x="27.3" y="4.0" width="11.2" height="11.2" xlink:href="../qr/QR_BASENAME.png"/>
+  <image x="27.3" y="4.0" width="11.2" height="11.2" xlink:href="data:image/png;base64,QR_BASE64_HERE"/>
   <text x="32.9" y="16.9" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="1.8" fill="#000000" text-anchor="middle">COA</text>
 </svg>

@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
-"""Report rightmost ink per 1mm band in a label PNG's text zone.
+"""Report rightmost ink per 1mm band in a label PNG's text zone, and
+verify the QR actually rendered.
 
-Catches the common failure: a fact line running into the QR gutter.
+Catches the two common failures:
+1. A fact line running into the QR gutter.
+2. A blank QR: librsvg 2.62+ silently drops image hrefs that escape the
+   SVG's directory (e.g. ../qr/name.png) — the render exits 0 with an
+   empty QR zone. The QR box must contain real ink.
+
 Assumes the 640x320 render (16 px/mm) produced by build_and_check.sh
 and the standard template geometry: text zone starts at x=2.0mm, QR
-occupies x >= 27.3mm.
+occupies x 27.3-38.5mm, y 4.0-15.2mm.
 
 Exit code 1 if any band's ink crosses into the gutter (right edge of a
-text row beyond 26.9mm), else 0.
+text row beyond 26.9mm) or the QR box is blank, else 0.
 """
 import sys
 from PIL import Image
@@ -18,6 +24,8 @@ QR_START_MM = 27.3   # left edge of the QR column
 QR_TOP_MM = 4.0      # top edge of the QR: rows above it may overhang right
 LIMIT_MM = 26.9      # text must stay left of this wherever the QR exists
 EDGE_MARGIN_MM = 0.15  # skip the QR's anti-aliased edge pixels
+QR_SIDE_MM = 11.2    # QR box is QR_START..QR_START+QR_SIDE, QR_TOP..+QR_SIDE
+QR_INK_MIN = 3000    # dark px inside the QR box; a real QR has >10k
 
 
 def main() -> int:
@@ -63,6 +71,20 @@ def main() -> int:
               "or reduce all fact-line font sizes together.")
         return 1
     print(f"ok: widest text ink {worst:.2f} mm")
+
+    # QR presence check (inset 2px to skip the box's anti-aliased edges).
+    qx0, qy0 = int(QR_START_MM * mm) + 2, int(QR_TOP_MM * mm) + 2
+    qx1, qy1 = int((QR_START_MM + QR_SIDE_MM) * mm) - 2, \
+               int((QR_TOP_MM + QR_SIDE_MM) * mm) - 2
+    qr_ink = sum(1 for y in range(qy0, qy1) for x in range(qx0, qx1)
+                 if px[x, y] < 128)
+    print(f"QR zone ink: {qr_ink} px (minimum {QR_INK_MIN})")
+    if qr_ink < QR_INK_MIN:
+        print("FAIL: QR zone is blank — the SVG's QR image did not render. "
+              "librsvg 2.62+ silently drops file hrefs that escape the "
+              "SVG's directory (../qr/x.png). Embed the QR as a base64 "
+              "data URI instead.")
+        return 1
     return 0
 
 
