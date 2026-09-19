@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="40mm" height="20mm" viewBox="0 0 40 20">
+  <!--
+    NIIMBOT vial label template, 40x20mm, black thermal on transparent stock.
+    All coordinates are millimeters. Proven layout constraints:
+      - Text zone starts at x=1.7. Fact lines (Helvetica Neue Condensed Bold
+        2.0mm) must each stay under ~25mm wide, i.e. right edge <= 27.0,
+        or they collide with the QR at x=27.3. The title (4.6mm) clears the
+        QR's top-left corner; anything bigger will overlap the QR column.
+        Verify with scripts/measure_ink.py after rendering.
+      - QR references ../qr/<file>.png relative to labels/ so the SVG stays
+        portable. Replace QR_BASENAME with the registered QR for this
+        compound (reuse an existing qr/ asset when one exists).
+      - Keep fact lines at the same font size as each other; shorten wording
+        rather than mixing sizes. Print only user-verified values.
+  -->
+  <rect x="0" y="0" width="40" height="20" fill="#ffffff"/>
+  <rect x="0.45" y="0.45" width="39.1" height="19.1" rx="1.4" ry="1.4" fill="none" stroke="#000000" stroke-width="0.38"/>
+
+  <text x="1.7" y="5.6" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="4.6" fill="#000000">COMPOUND</text>
+  <rect x="1.7" y="6.65" width="24.2" height="0.28" fill="#000000"/>
+
+  <text x="1.7" y="9.9"  font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">10 MG &#8226; REAL MASS 00.00 MG</text>
+  <text x="1.7" y="13.3" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">3 ML VIAL &#8226; 2 ML WATER</text>
+  <text x="1.7" y="16.7" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">TESTED MM/DD/YYYY</text>
+
+  <image x="27.3" y="4.0" width="11.2" height="11.2" xlink:href="../qr/QR_BASENAME.png"/>
+  <text x="32.9" y="16.9" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="1.8" fill="#000000" text-anchor="middle">COA</text>
+</svg>
