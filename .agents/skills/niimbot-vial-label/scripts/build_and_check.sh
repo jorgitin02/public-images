@@ -48,5 +48,11 @@ case "$PDF_DIM" in
     exit 1 ;;
 esac
 
-# Ink extents: catches fact lines running into the QR gutter.
-python3 "$HERE/measure_ink.py" "$PNG"
+# Ink extents + QR presence. Labels with no real <image> element (intentional
+# QR-less personal labels) are checked full-width with --no-qr instead.
+if python3 -c 'import sys,xml.etree.ElementTree as ET
+sys.exit(0 if any(e.tag.endswith("image") for e in ET.parse(sys.argv[1]).iter()) else 1)' "$SVG"; then
+  python3 "$HERE/measure_ink.py" "$PNG"
+else
+  python3 "$HERE/measure_ink.py" --no-qr "$PNG"
+fi

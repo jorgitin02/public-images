@@ -13,8 +13,9 @@ description: >
 
 # NIIMBOT vial label: design, verify, register, import
 
-Proven end-to-end 2026-09-19 with three templates: `retat10-glm`,
-`hgh24-glm`, `reta30-glm`. Division of labor: all design happens in this
+Proven end-to-end 2026-09-19 with four templates: `retat10-glm`,
+`hgh24-glm`, `reta30-glm` (ZCode) and `ghk50-deepseek` (OpenCode, QR-less
+personal label). Division of labor: all design happens in this
 repo where it is deterministic and reviewable; the NIIMBOT GUI is used only
 for import, save, and rename. Never author label content by clicking in the
 app — its Flutter UI ignores semantic writes and text/position editing is
@@ -53,10 +54,24 @@ and `perform_action` exist, you are on ZCode; if the action tools are named
 ZCode loads the `computer-use:computer-use` skill first; OpenCode has no
 computer-use skill — its tools come straight from the `open-computer-use`
 MCP, so skip that load step. OpenCode has no app-launch tool: launch and
-activate NIIMBOT with `open -a NIIMBOT` and confirm with `get_app_state`.
-Whether that warms the Flutter AX tree as reliably as ZCode's
-`open_application activate=true` is not yet re-verified (flagged again in
-step 5).
+activate NIIMBOT with shell `open -a NIIMBOT` (add
+`osascript -e 'tell application id "com.niimbot.print" to activate'` when a
+dialog needs focus) and confirm with `get_app_state`. Verified 2026-09-19
+under OpenCode: the Flutter AX tree warms the same way (saved
+`ghk50-deepseek`).
+
+Two OpenCode-only realities shape step 5:
+
+- The native file panel ignores every synthetic click (accessibility /
+  app_post / sky_click, element or coordinate, single or double). Only a
+  real-pointer click works, via the CLI (the MCP click tool lacks the env):
+  `OPEN_COMPUTER_USE_ALLOW_GLOBAL_POINTER_FALLBACKS=1 open-computer-use call
+  click --args '{"app":"com.niimbot.print","x":<x>,"y":<y>,"click_count":2,
+  "click_method":"global"}'`
+- Flutter text fields reject `set_value` (the AX value changes, the app
+  never sees it — a later state read shows the value you wrote; do not
+  trust it) and `type_text` (reports ok, nothing lands). Type with System
+  Events keystrokes after a real-pointer click focuses the field.
 
 ## 0. Inputs to collect
 
@@ -149,6 +164,16 @@ b64=$(base64 -i qr/<basename>.png | tr -d '\n')
 # and keep a comment in the SVG naming the source qr/ asset
 ```
 
+XML pitfall: never put `--` inside an SVG comment (e.g. `--no-qr`) — XML
+forbids double hyphens and rsvg refuses to render ("Double hyphen within
+comment").
+
+QR-less personal label variant (used for `ghk50-deepseek` when the user
+asks for no QR): drop the `<image>` element entirely, stretch the fact
+lines across the full width (right limit 38.0mm), keep the RECON strip.
+`build_and_check.sh` auto-detects the missing image and verifies
+full-width; the links.csv row leaves the three QR/URL columns empty.
+
 Layout facts baked into the template (all units mm, viewBox 0 0 40 20):
 
 - Text zone x = 1.7 to ~27.0. Fact lines are Helvetica Neue Condensed Bold
@@ -178,7 +203,10 @@ page PDF next to the SVG, then checks: PNG is 640x320; PDF rasterizes to
 page size — do not use it for this check); per-band ink extents
 (`scripts/measure_ink.py`) so text overflow into the QR gutter is caught
 numerically; and QR-zone ink — a blank QR now FAILS the build instead of
-passing silently.
+passing silently. Labels with no `<image>` element (intentional QR-less
+personal labels) are auto-detected and checked full-width with `--no-qr`:
+text limit 38.0mm, QR presence check skipped (skip the QR decode block
+below for those).
 
 Then Read the PNG visually — nothing clipped, QR intact, text hierarchy
 reads like a professional lab label — and decode the QR from the rendered
@@ -209,7 +237,9 @@ Append one label row (match header order exactly):
 
 `id` equals the SVG basename. `public_url` stays empty unless the label
 itself is being hosted. Reference the embedded QR's path and its hosted URL
-so the destination stays recoverable. If a NEW QR was generated, also fill
+so the destination stays recoverable. A QR-less personal label leaves
+`public_url`, `qr_path` and `qr_public_url` empty (three commas in a row).
+If a NEW QR was generated, also fill
 the COA row's `qr_path`/`qr_public_url` columns (update that row in place).
 `qr_public_url` values 404 until the next push — record them anyway.
 
@@ -223,11 +253,10 @@ above for every tool-name difference.
 Derive every pixel coordinate from the LATEST screenshot raster — never
 reuse stale coordinates. After every action: wait 2–4s (`wait` on ZCode,
 shell `sleep` on OpenCode), re-observe, verify. The app is Flutter-based and
-only exposes its accessibility tree after
-`open_application {"bundle_id": "com.niimbot.print", activate=true}` warms
-it (OpenCode equivalent: `open -a NIIMBOT`; not yet re-verified — if the
-tree returns ~8 generic elements, re-run `get_app_state` once the app is
-frontmost and prefer element indexes from the fresh state).
+only exposes its accessibility tree after activation (ZCode:
+`open_application {"bundle_id": "com.niimbot.print", activate=true}`;
+OpenCode: `open -a NIIMBOT`, verified) — before that the tree is ~8 generic
+elements.
 
 Launch and editor:
 
@@ -239,8 +268,9 @@ Launch and editor:
    stock). Never open or edit the user's existing templates (hgh24-glm,
    reta30-glm, retat10-glm, hgh25iu, kpv10, ss31-10mg, tirze10, ...).
 
-Image import — semantic AX ONLY (OpenCode: use `perform_secondary_action`
-where this says `perform_action`; `set_value` is the same name):
+Image import — ZCode path, semantic AX ONLY (OpenCode translation of the
+tool names: `perform_secondary_action` for `perform_action`; see the
+OpenCode path below, which supersedes this block):
 
 3. Click the **Image** tool (left toolbar). The native macOS open panel
    appears. Do NOT send Cmd+Shift+G — the Go-to-Folder sheet never opens
@@ -257,20 +287,45 @@ where this says `perform_action`; `set_value` is the same name):
    still works. Verify with a screenshot that the whole label is placed,
    nothing clipped, before saving.)
 
+Image import — OpenCode path (verified 2026-09-19: the panel exposes no
+cell to AXOpen and ignores all synthetic clicks; the real-pointer
+double-click below is the only route that registers — it closed the panel
+and the image landed):
+
+3b. `cp labels/<file>.png ~/Downloads/` first — the panel opens there, so
+    the file is the top row and no search is needed.
+4b. Click the **Image** tool (MCP click works on Flutter elements); the
+    panel opens on Downloads. (Search + AXConfirm work but the results rows
+    cannot be selected by any synthetic method.)
+5b. Real-pointer double-click the file row:
+    `OPEN_COMPUTER_USE_ALLOW_GLOBAL_POINTER_FALLBACKS=1 open-computer-use
+    call click --args '{"app":"com.niimbot.print","x":<x>,"y":<y>,
+    "click_count":2,"click_method":"global"}'`
+    Derive `<x>`/`<y>` from the LATEST raster (the row sat at ~(400,172) on
+    a 1280x760 window; re-derive every time). The panel closes and the image
+    auto-fits. If it still resists after two attempts, ask the user to
+    double-click the file — 30-second fallback, do not grind.
+6b. Verify placement with an app-scoped screenshot, then save as below.
+
 Save and rename:
 
 6. Click **Save**. It saves silently under the auto tab name
    (`Templates-<timestamp>`); there is no name dialog. Verify on Home →
    Recent: a new card with the correct thumbnail must exist before
    renaming.
-7. Reopen the template from Recent. **Double-click the tab title** —
-   ZCode: the dedicated `double_click` tool; OpenCode: `click` with
-   `click_count: 2`. Two separate single clicks do NOT register as a
-   double-click — and the **Rename** dialog opens with
-   the current name pre-selected. Send app-scoped `type` (OpenCode:
-   `type_text`) with the new short
-   name (keyboard reaches focused fields while the app is frontmost; send
-   `cmd+a` first if the text is not selected), then click **Done**.
+7. **Double-click the tab title** — ZCode: the dedicated `double_click`
+   tool. OpenCode: `click` with `click_count: 2` and
+   **`click_method: "sky_click"`** (`auto` / `app_post` do NOT open the
+   dialog). Two separate single clicks never register. The **Rename**
+   dialog opens with the current name pre-selected.
+   ZCode: send app-scoped `type` with the new short name (cmd+a first if
+   the text is not selected), then click **Done**.
+   OpenCode: `set_value` only writes the AX value (the field visual stays
+   unchanged — do not trust it) and `type_text` reports ok but nothing
+   lands. Instead: real-pointer click the field until the caret appears,
+   then type with System Events —
+   `osascript -e 'tell application "System Events" to keystroke "a" using
+   command down'`, then `keystroke "<new-name>"` — then click **Done**.
 8. Final verify: Home → Recent shows the renamed template with the correct
    thumbnail. Report the saved name to the user.
 
@@ -286,6 +341,10 @@ Known dead ends — each one cost real time on 2026-09-19, do not retry:
 - AXPress on in-app Flutter content tools that need a dialog response,
   `set_value` on in-app Flutter text fields (writes never reach the app —
   native AppKit fields are fine), Cmd+S, typed text with stale focus.
+- OpenCode: the file panel's result rows expose no AX actions (AXPress /
+  AXOpen return "not a valid secondary action") and every synthetic click
+  is dropped — the global real-pointer path in step 5 is the only one that
+  works. Clipboard Cmd+V does not import the image either.
 - Do not click **Print** unless the user asks AND the app shows a connected
   printer — while it says "Unconnected" printing is impossible anyway.
 
@@ -318,6 +377,18 @@ Relaunches may show the update dialog again — dismiss it.
 screen-recording helper error while `get_app_state include_screenshot=true`
 (app-scoped) keeps working — prefer app-scoped captures for verification
 regardless; they show exactly the app you are driving.
+
+**OpenCode file panel.** `set_value` on the Search field, `AXConfirm`, and
+AXPress on native buttons (Cancel) work; file rows have no AX actions,
+synthetic clicks are all dropped, and the Open button's disabled flag in
+the AX tree is unreliable (it flips without a selection). Real-pointer
+(`global`) clicks are the only way to select a row — see step 5.
+
+**Typing into Flutter fields (OpenCode).** `set_value` changes the AX
+value but the app never sees it; `type_text` reports ok without landing.
+System Events keystrokes (`osascript ... keystroke`) DO reach the app after
+a real-pointer click focuses the field — System Events accessibility is
+granted on this Mac.
 
 **Input reliability ranking** (use top-down; never trust a receipt alone —
 `action_sent=true` means "possibly happened", always re-observe):
