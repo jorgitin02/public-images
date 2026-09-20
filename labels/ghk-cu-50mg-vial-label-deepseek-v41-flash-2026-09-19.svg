@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40mm" height="20mm" viewBox="0 0 40 20">
+  <!--
+    GHK-Cu 50mg vial label, 40x20mm, black thermal on transparent stock.
+    Personal-use variant: intentionally NO QR (not linked to a hosted COA).
+    COA facts (Freedom Diagnostics, lot ERP7926, reported 07/13/2026):
+      50mg nominal, net content 57.82mg, purity 99.66%.
+    Verification: build_and_check.sh detects the missing image element and
+    runs measure_ink.py in no-QR mode (full-width text limit 38.0mm).
+    RECON strip is blank for a hand-written date after reconstitution.
+  -->
+  <rect x="0" y="0" width="40" height="20" fill="#ffffff"/>
+  <rect x="0.45" y="0.45" width="39.1" height="19.1" rx="1.4" ry="1.4" fill="none" stroke="#000000" stroke-width="0.38"/>
+
+  <text x="1.7" y="5.4" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="4.4" fill="#000000">GHK-Cu 50MG</text>
+  <rect x="1.7" y="6.5" width="36.6" height="0.28" fill="#000000"/>
+
+  <text x="1.7" y="9.8"  font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">REAL MASS 57.82 MG &#8226; LOT ERP7926</text>
+  <text x="1.7" y="13.0" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">PURITY 99.66% &#8226; TESTED 07/13/2026</text>
+
+  <rect x="1.7" y="14.9" width="36.6" height="3.7" rx="0.6" ry="0.6" fill="none" stroke="#000000" stroke-width="0.3"/>
+  <text x="2.6" y="17.45" font-family="Helvetica Neue" font-weight="700" font-stretch="condensed" font-size="2.0" fill="#000000">RECON</text>
+  <rect x="9.6" y="17.55" width="27.8" height="0.25" fill="#000000"/>
+</svg>
